@@ -25,6 +25,8 @@ class Frame:
                  frame_locals: dict[str, tp.Any]) -> None:
         self.code = frame_code
         self.i = 0
+        self.last_exception = None
+        self.block_holder = []
         self.builtins = frame_builtins
         self.globals = frame_globals
         self.locals = frame_locals
@@ -83,41 +85,6 @@ class Frame:
         f = self.pop()
         self.push(f(*arguments))
 
-    def load_name_op(self, arg: str) -> None:
-        """
-        Partial realization
-
-        Operation description:
-            https://docs.python.org/release/3.11.5/library/dis.html#opcode-LOAD_NAME
-        """
-        if arg in self.locals:
-            self.push(self.locals[arg])
-
-        elif arg in self.globals:
-            self.push(self.globals[arg])
-
-        elif arg in self.builtins:
-            self.push(self.builtins[arg])
-
-        else:
-            raise NameError
-
-    def load_global_op(self, arg: str) -> None:
-        """
-        Operation description:
-            https://docs.python.org/release/3.11.5/library/dis.html#opcode-LOAD_GLOBAL
-        """
-        if arg in self.locals:
-            self.push(self.locals[arg])
-
-        elif arg in self.globals:
-            self.push(self.globals[arg])
-
-        elif arg in self.builtins:
-            self.push(self.builtins[arg])
-
-        else:
-            raise NameError
 
     def load_const_op(self, arg: tp.Any) -> None:
         """
@@ -176,7 +143,7 @@ class Frame:
 
     def binary_op_op(self, opcode):
         if len(self.data_stack) < 2:
-            raise ValueError("Not enough values on the data stack for binary operation")
+            raise ValueError
         op2 = self.pop()
         op1 = self.pop()
         result = None
@@ -269,7 +236,7 @@ class Frame:
     def jump_forward_op(self, offset):
         self.i = self.find_wanted_ind_by_offset(offset)
 
-    def pop_jump_back_if_true_op(self, offset):
+    def pop_jump_backward_if_true_op(self, offset):
         value = self.pop()
         if value:
             self.i = self.find_wanted_ind_by_offset(offset)
@@ -302,23 +269,24 @@ class Frame:
             self.push(a)
 
     def get_iter_op(self, arg) -> None:
-
-        obj = self.pop()
-
-        try:
-            iterator = iter(obj)
-        except TypeError:
-            raise TypeError("Object is not iterable")
-
-        self.push(iterator)
+        iterable = self.pop()
+        if iterable is not None:
+            self.push(iter(iterable))
+        else:
+            self.push(None)
 
     def for_iter_op(self, offset: int) -> None:
+        iterator = self.top()
 
-        iter = self.top()
-        try:
-            item = next(iter)
-            self.push(item)
-        except StopIteration:
+        if iterator is not None:
+            try:
+                item = next(iterator)
+                self.push(item)
+            except StopIteration:
+                self.pop()
+                self.i = self.find_wanted_ind_by_offset(offset)
+        else:
+            self.pop()
             self.i = self.find_wanted_ind_by_offset(offset)
 
     def build_slice_op(self, n):
@@ -335,6 +303,7 @@ class Frame:
 
     def build_list_op(self, size):
         items = [self.pop() for _ in range(size)]
+        items.reverse()
         self.push(list(items))
 
     def build_tuple_op(self, size):
@@ -418,38 +387,51 @@ class Frame:
         else:
             self.push(op1 is op2)
 
-    def store_fast_op(self, var_num: str):
-        tos = self.pop()
-        self.locals[var_num] = tos
+    def store_fast_op(self, arg):
+        op = self.pop()
+        self.locals[arg] = op
 
-    def load_fast_op(self, var_num: str):
-        tos = self.locals[var_num]
-        self.push(tos)
+    def load_fast_op(self, arg):
+        try:
+            op = self.locals[arg]
+        except KeyError:
+            UnboundLocalError
+        self.push(op)
 
     def pop_jump_forward_if_none_op(self, offset):
         value = self.pop()
 
         if value is None:
             self.i = self.find_wanted_ind_by_offset(offset)
-    def build_string_op(self, arg):
-        self.push("")
+    def build_string_op(self, count):
+        s = ""
+        l = []
+        for i in range(count):
+            l.append(self.pop())
 
-    # def format_value_op(self, flags):
-    #     fmt_spec = self.pop()
-    #     value = self.pop()
-    #
-    #     if (flags & 0x03) == 0x00:
-    #         pass
-    #     elif (flags & 0x03) == 0x01:
-    #         value = str(value)
-    #     elif (flags & 0x03) == 0x02:
-    #         value = repr(value)
-    #     elif (flags & 0x03) == 0x03:
-    #         value = ascii(value)
-    #     elif(flags & 0x04) != 0x04:
-    #         fmt_spec = ""
-    #
-    #     res = PyObject_Format(value, fmt_spec)
+        for elem in reversed(l):
+            s += elem
+
+        self.push(s)
+
+    def format_value_op(self, flags):
+
+        # value = self.pop()
+        # if (flags & 0x03) == 0x00:
+        #     pass
+        # elif (flags & 0x03) == 0x01:
+        #     value = str(value)
+        # elif (flags & 0x03) == 0x02:
+        #     value = repr(value)
+        # elif (flags & 0x03) == 0x03:
+        #     value = ascii(value)
+        # elif(flags & 0x04) != 0x04:
+        #     fmt_spec = ""
+        #
+        # res = PyObject_Format(value, fmt_spec)
+
+        value = self.pop()
+        self.push(str(value))
 
     def make_function_op(self, arg: int) -> None:
         code = self.pop()
@@ -494,6 +476,182 @@ class Frame:
     def copy_op(self, i):
         assert i > 0
         self.data_stack.append(self.data_stack[-i])
+
+    def store_subscr_op(self, arg):
+        key = self.pop()
+        container = self.pop()
+        value = self.pop()
+        container[key] = value
+
+    def delete_subscr_op(self, arg):
+        key = self.pop()
+        container = self.pop()
+        del container[key]
+
+    def delete_name_op(self, arg):
+        if arg in self.locals:
+            del (self.locals[arg])
+        elif arg in self.globals:
+            del (self.globals[arg])
+        elif arg in self.builtins:
+            del (self.builtins[arg])
+        else:
+            raise NameError
+
+    def delete_global_op(self, arg):
+        if arg in self.globals:
+            del (self.globals[arg])
+        else:
+            raise NameError
+
+    def delete_fast_op(self, arg):
+        if arg in self.locals:
+            del (self.locals[arg])
+        else:
+            raise NameError
+
+    def list_to_tuple_op(self, arg):
+        l = self.pop()
+        self.push(tuple(l))
+
+    def store_attr_op(self, arg):
+        try:
+            name_index = self.code.co_names.index(arg)
+        except ValueError:
+            raise AttributeError
+
+        name = self.code.co_names[name_index]
+        op2 = self.pop()
+        op1 = self.pop()
+        setattr(op2, name, op1)
+
+    def load_attr_op(self, namei):
+        attr_name = namei
+
+        obj = self.pop()
+
+        if hasattr(obj, attr_name):
+            attr_value = getattr(obj, attr_name)
+            self.push(attr_value)
+        else:
+            raise AttributeError
+
+    def delete_attr_op(self, namei):
+        obj = self.pop()
+        delattr(obj, namei)
+
+    def load_build_class_op(self, classs):
+        self.push(self.builtins['__build_class__'])
+
+    def setup_annotations_op(self, arg):
+        if '__annotations__' not in self.locals:
+            self.locals['__annotations__'] = {}
+
+    def dict_update_op(self, i):
+        map = self.pop()
+        dict.update(self.data_stack[-i], map)
+
+    def import_name_op(self, namei):
+
+        module_name = namei
+        fromlist = self.pop()
+        level = self.pop()
+
+        imported_module = __import__(module_name, globals(), locals(), fromlist, level)
+
+        self.push(imported_module)
+
+    def import_star_op(self, arg):
+        module = self.pop()
+        try:
+            imported_items = vars(module)
+            for name, value in imported_items.items():
+                self.locals[name] = value
+            self.push(imported_items)
+        except Exception as e:
+            raise ImportError()
+
+    def import_from_op(self, namei):
+        attr_name = namei
+        module = self.top()
+
+        try:
+            attr = getattr(module, attr_name)
+            self.push(attr)
+        except AttributeError:
+            raise AttributeError()
+
+
+
+    def load_name_op(self, arg: str) -> None:
+
+        if arg in self.locals:
+            self.push(self.locals[arg])
+
+        elif arg in self.globals:
+            self.push(self.globals[arg])
+
+        elif arg in self.builtins:
+            self.push(self.builtins[arg])
+
+        else:
+            self.last_exception = NameError(arg)
+            self.exception_handling()
+
+
+    def load_global_op(self, arg: str) -> None:
+        if arg in self.locals:
+            self.push(self.locals[arg])
+
+        elif arg in self.globals:
+            self.push(self.globals[arg])
+
+        elif arg in self.builtins:
+            self.push(self.builtins[arg])
+
+        else:
+            self.last_exception = NameError(arg)
+            self.exception_handling()
+
+
+    def exception_handling(self):
+        if len(self.block_holder) == 0:
+            raise self.last_exception
+
+        block_type, handler, level = self.block_holder.pop()
+        if block_type == 'EXCEPT':
+            self.data_stack = self.data_stack[:level]
+            self.data_stack.append(self.last_exception)
+            self.last_exception = None
+            self.index = handler - 1
+        else:
+            raise ValueError("Unexpected handler type")
+
+
+    def setup_except_op(self, delta: int):
+        block_type = "EXCEPT"
+
+        handler = delta
+        level = len(self.data_stack)
+        self.block_holder.append((block_type, handler, level))
+
+
+    def pop_except_op(self, arg):
+        self.check_block_can_be_finished("EXCEPT")
+        self.block_holder.pop()
+
+    def end_finally_op(self, arg):
+        if self.last_exception:
+            self.data_stack.pop()
+
+        self.data_stack.pop()
+        self.data_stack.pop()
+
+
+    def check_block_can_be_finished(self, block_type):
+        top = self.block_holder[-1]
+
+        assert top[0] == block_type, f"Expected {block_type} block on stack!"
 
 class VirtualMachine:
     def run(self, code_obj: types.CodeType) -> None:
