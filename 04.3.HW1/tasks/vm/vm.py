@@ -333,16 +333,20 @@ class Frame:
             start = self.pop()
             self.push(slice(start, end, step))
 
-    def build_list_op(self, size: int):
+    def build_list_op(self, size):
         items = [self.pop() for _ in range(size)]
         self.push(list(items))
 
-    def build_tuple_op(self, size: int):
+    def build_tuple_op(self, size):
         items = [self.pop() for _ in range(size)]
         self.push(tuple(items))
 
-    def list_extend_op(self, i):
-        pass
+    def list_extend_op(self, arg):
+        tmp = list(self.pop())
+        l = self.pop()
+        l.extend(tmp)
+        self.push(l)
+
 
     def build_map_op(self, size: int):
         key_value_pairs = []
