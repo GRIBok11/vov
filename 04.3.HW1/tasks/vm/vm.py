@@ -241,10 +241,10 @@ class Frame:
         if value:
             self.i = self.find_wanted_ind_by_offset(offset)
 
-    def binary_subscr_op(self, arg: tp.Any):
-        tos = self.pop()
-        tos1 = self.pop()
-        self.push(tos1[tos])
+    def binary_subscr_op(self, arg):
+        op2 = self.pop()
+        op1 = self.pop()
+        self.push(op1[op2])
 
     def unary_positive_op(self, arg):
         a = self.pop()
@@ -308,6 +308,7 @@ class Frame:
 
     def build_tuple_op(self, size):
         items = [self.pop() for _ in range(size)]
+        items.reverse()
         self.push(tuple(items))
 
     def list_extend_op(self, arg):
