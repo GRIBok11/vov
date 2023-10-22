@@ -9,6 +9,7 @@ import types
 import typing as tp
 
 
+
 class Frame:
     """
     Frame header in cpython with description
@@ -23,6 +24,7 @@ class Frame:
                  frame_globals: dict[str, tp.Any],
                  frame_locals: dict[str, tp.Any]) -> None:
         self.code = frame_code
+        self.i = 0
         self.builtins = frame_builtins
         self.globals = frame_globals
         self.locals = frame_locals
@@ -51,15 +53,23 @@ class Frame:
             return []
 
     def run(self) -> tp.Any:
+
+        l = []
+
         for instruction in dis.get_instructions(self.code):
-            getattr(self, instruction.opname.lower() + "_op")(instruction.argval)
+            l.append(instruction)
+
+        while True:
+            if self.i >= len(l):
+                break
+            getattr(self, l[self.i].opname.lower() + "_op")(l[self.i].argval)
+            self.i += 1
         return self.return_value
-    
     def resume_op(self, arg: int) -> tp.Any:
         pass
 
     def push_null_op(self, arg: int) -> tp.Any:
-        self.push(None)
+        pass
 
     def precall_op(self, arg: int) -> tp.Any:
         pass
@@ -80,16 +90,34 @@ class Frame:
         Operation description:
             https://docs.python.org/release/3.11.5/library/dis.html#opcode-LOAD_NAME
         """
-        # TODO: parse all scopes
-        self.push(self.locals[arg])
+        if arg in self.locals:
+            self.push(self.locals[arg])
+
+        elif arg in self.globals:
+            self.push(self.globals[arg])
+
+        elif arg in self.builtins:
+            self.push(self.builtins[arg])
+
+        else:
+            raise NameError
 
     def load_global_op(self, arg: str) -> None:
         """
         Operation description:
             https://docs.python.org/release/3.11.5/library/dis.html#opcode-LOAD_GLOBAL
         """
-        # TODO: parse all scopes
-        self.push(self.builtins[arg])
+        if arg in self.locals:
+            self.push(self.locals[arg])
+
+        elif arg in self.globals:
+            self.push(self.globals[arg])
+
+        elif arg in self.builtins:
+            self.push(self.builtins[arg])
+
+        else:
+            raise NameError
 
     def load_const_op(self, arg: tp.Any) -> None:
         """
@@ -141,6 +169,327 @@ class Frame:
         const = self.pop()
         self.locals[arg] = const
 
+    def store_global_op(self, arg: str) -> None:
+        value = self.pop()
+        self.globals[arg] = value
+        self.locals[arg] = value
+
+    def binary_op_op(self, opcode):
+        if len(self.data_stack) < 2:
+            raise ValueError("Not enough values on the data stack for binary operation")
+        op2 = self.pop()
+        op1 = self.pop()
+        result = None
+
+        if opcode == 13 or opcode == 0:
+            result = op1 + op2
+        elif opcode == 24 or opcode == 11:
+            result = op1 / op2
+        elif opcode == 1 or opcode == 14:
+            result = op1 & op2
+        elif opcode == 7 or opcode == 20:
+            result = op1 | op2
+        elif opcode == 10 or opcode == 23:
+            result = op1 - op2
+        elif opcode == 5 or opcode == 18:
+            result = op1 * op2
+        elif opcode == 8 or opcode == 21:
+            result = op1 ** op2
+        elif opcode == 12 or opcode == 25:
+            result = op1 ^ op2
+        elif opcode == 6 or opcode == 19:
+            result = op1 % op2
+        elif opcode == 3 or opcode == 16:
+            result = op1 << op2
+        elif opcode == 22 or opcode == 9:
+            result = op1 >> op2
+        elif opcode == 2 or opcode == 15:
+            result = op1 // op2
+        if result is not None:
+            self.push(result)
+
+    def unpack_sequence_op(self, count):
+        sequence = self.pop()
+        if not isinstance(sequence, (list, tuple)):
+            raise TypeError("Argument must be a list or tuple")
+
+        for element in reversed(sequence):
+            self.push(element)
+
+    def compare_op_op(self, op):
+        if len(self.data_stack) < 2:
+            raise ValueError("Not enough values on the data stack for comparison operation")
+
+        operand2 = self.pop()
+        operand1 = self.pop()
+        result = None
+
+        if op == '==':
+            result = operand1 == operand2
+        elif op == '<':
+            result = operand1 < operand2
+        elif op == '<=':
+            result = operand1 <= operand2
+        elif op == '>':
+            result = operand1 > operand2
+        elif op == '>=':
+            result = operand1 >= operand2
+        elif op == '!=':
+            result = operand1 != operand2
+        else:
+            raise NameError
+
+        self.push(result)
+
+    def pop_jump_forward_if_false_op(self, offset):
+        value = self.pop()
+
+        if not value:
+            self.i = self.find_wanted_ind_by_offset(offset)
+
+    def find_wanted_ind_by_offset(self, offset):
+        for i, instr in enumerate(dis.get_instructions(self.code)):
+            if instr.offset == offset:
+                return i - 1
+    def pop_jump_forward_if_true_op(self, offset):
+        value = self.pop()
+        if value:
+            self.i = self.find_wanted_ind_by_offset(offset)
+
+    def pop_jump_back_if_false_op(self, offset):
+        value = self.pop()
+        if not value:
+            self.i = self.find_wanted_ind_by_offset(offset)
+
+    def jump_backward_op(self, offset):
+        self.i = self.find_wanted_ind_by_offset(offset)
+
+    def nop_op(self, arg):
+        pass
+    def jump_forward_op(self, offset):
+        self.i = self.find_wanted_ind_by_offset(offset)
+
+    def pop_jump_back_if_true_op(self, offset):
+        value = self.pop()
+        if value:
+            self.i = self.find_wanted_ind_by_offset(offset)
+
+    def binary_subscr_op(self, arg: tp.Any):
+        tos = self.pop()
+        tos1 = self.pop()
+        self.push(tos1[tos])
+
+    def unary_positive_op(self, arg):
+        a = self.pop()
+        self.push(+a)
+
+    def unary_negative_op(self, arg):
+        a = self.pop()
+        self.push(-a)
+
+    def unary_not_op(self, arg):
+        a = self.pop()
+        self.push(not a)
+
+    def unary_invert_op(self, arg):
+        a = self.pop()
+        self.push(~a)
+
+    def jump_if_true_or_pop_op(self, offset):
+        a = self.pop()
+        if a:
+            self.i = self.find_wanted_ind_by_offset(offset)
+            self.push(a)
+
+    def get_iter_op(self, arg) -> None:
+
+        obj = self.pop()
+
+        try:
+            iterator = iter(obj)
+        except TypeError:
+            raise TypeError("Object is not iterable")
+
+        self.push(iterator)
+
+    def for_iter_op(self, offset: int) -> None:
+
+        iter = self.top()
+        try:
+            item = next(iter)
+            self.push(item)
+        except StopIteration:
+            self.i = self.find_wanted_ind_by_offset(offset)
+
+    def build_slice_op(self, n):
+        if n == 2:
+            end = self.pop()
+            start = self.pop()
+            self.push(slice(start, end))
+
+        if n == 3:
+            step = self.pop()
+            end = self.pop()
+            start = self.pop()
+            self.push(slice(start, end, step))
+
+    def build_list_op(self, size: int):
+        items = [self.pop() for _ in range(size)]
+        self.push(list(items))
+
+    def build_tuple_op(self, size: int):
+        items = [self.pop() for _ in range(size)]
+        self.push(tuple(items))
+
+    def list_extend_op(self, i):
+        pass
+
+    def build_map_op(self, size: int):
+        key_value_pairs = []
+        for _ in range(size):
+            val = self.pop()
+            key = self.pop()
+            key_value_pairs.append((key, val))
+        result_dict = dict(key_value_pairs)
+        self.push(result_dict)
+
+    def build_const_key_map_op(self, count):
+        keys = self.pop()
+        values = [self.pop() for _ in range(count)]
+        values.reverse()
+        result_dict = dict(zip(keys, values))
+        self.push(result_dict)
+
+    def load_assertion_error_op(self, arg):
+        self.push(AssertionError)
+
+    def raise_varargs_op(self, argc):
+        if argc == 0:
+            raise
+        elif argc == 1:
+            raise self.data_stack[-1]
+        elif argc == 2:
+            raise self.data_stack[-2] from self.data_stack[-1]
+
+
+
+    def load_method_op(self, method_name):
+
+        obj = self.pop()
+
+        if not hasattr(obj, method_name):
+            raise AttributeError(f"{type(obj).__name} object has no attribute '{method_name}'")
+
+        method = getattr(obj, method_name)
+
+        self.push(method)
+
+    def swap_op(self, arg: int) -> None:
+        v1 = self.pop()
+        v2 = self.pop()
+        self.push(v1)
+        self.push(v2)
+
+    def jump_if_false_or_pop_op(self, offset: int):
+        op = self.pop()
+        if not op:
+            self.i = self.find_wanted_ind_by_offset(offset)
+            self.push(op)
+
+    def contains_op_op(self, arg):
+        op2 = self.pop()
+        op1 = self.pop()
+
+        if arg == 1:
+            self.push(op1 not in op2)
+        else:
+            self.push(op1 in op2)
+
+    def is_op_op(self, arg):
+        op2 = self.pop()
+        op1 = self.pop()
+
+        if arg == 1:
+            self.push(op1 is not op2)
+        else:
+            self.push(op1 is op2)
+
+    def store_fast_op(self, var_num: str):
+        tos = self.pop()
+        self.locals[var_num] = tos
+
+    def load_fast_op(self, var_num: str):
+        tos = self.locals[var_num]
+        self.push(tos)
+
+    def pop_jump_forward_if_none_op(self, offset):
+        value = self.pop()
+
+        if value is None:
+            self.i = self.find_wanted_ind_by_offset(offset)
+    def build_string_op(self, arg):
+        self.push("")
+
+    # def format_value_op(self, flags):
+    #     fmt_spec = self.pop()
+    #     value = self.pop()
+    #
+    #     if (flags & 0x03) == 0x00:
+    #         pass
+    #     elif (flags & 0x03) == 0x01:
+    #         value = str(value)
+    #     elif (flags & 0x03) == 0x02:
+    #         value = repr(value)
+    #     elif (flags & 0x03) == 0x03:
+    #         value = ascii(value)
+    #     elif(flags & 0x04) != 0x04:
+    #         fmt_spec = ""
+    #
+    #     res = PyObject_Format(value, fmt_spec)
+
+    def make_function_op(self, arg: int) -> None:
+        code = self.pop()
+
+        kw_defaults = self.pop() if arg & 0x08 else {}
+        defaults = self.pop() if arg & 0x04 else ()
+        closure = self.pop() if arg & 0x10 else None
+        annotations = self.pop() if arg & 0x20 else None
+        num_pos_defaults = len(defaults)
+
+        def f(*args: tp.Any, **kwargs: tp.Any) -> tp.Any:
+            f_locals = {name: value for name, value in zip(code.co_varnames, defaults)}
+            num_args = min(code.co_argcount, len(args))
+            f_locals.update(zip(code.co_varnames[:num_args], args[:num_args]))
+
+            if len(args) > num_args and code.co_flags & 0x04:
+                f_locals[code.co_varnames[code.co_argcount]] = args[num_args:]
+
+            if kwargs and code.co_flags & 0x08:
+                f_locals[code.co_varnames[-1]] = kwargs
+
+            for kw, default in kw_defaults.items():
+                f_locals.setdefault(kw, default)
+
+            frame = Frame(code, self.builtins, self.globals, f_locals)
+            return frame.run()
+
+        self.push(f)
+
+    def build_set_op(self, n):
+        l = []
+        for a in range(n):
+            tmp = self.pop()
+            l.append(tmp)
+
+        self.push(set(l))
+
+    def set_update_op(self, i):
+        seq = self.pop()
+        set.update(self.data_stack[-i], seq)
+
+    def copy_op(self, i):
+        assert i > 0
+        self.data_stack.append(self.data_stack[-i])
 
 class VirtualMachine:
     def run(self, code_obj: types.CodeType) -> None:
