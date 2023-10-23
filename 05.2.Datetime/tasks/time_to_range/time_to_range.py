@@ -58,8 +58,7 @@ def get_interval(
         dt = s + mult * gtd.value
         if dt > f:
             break
-        res.append(dt.replace(second=0,
-                              microsecond=0))
+        res.append(dt.replace(second=0, microsecond=0))
         mult += 1
 
     return res
