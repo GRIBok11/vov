@@ -51,6 +51,7 @@ class Order:
 
     def __post_init__(self, have_promo: tp.Any) -> None:
         op = 0
+
         for p in self.positions:
             op += p.cost
 
