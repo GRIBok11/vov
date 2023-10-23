@@ -626,7 +626,7 @@ class Frame:
 
 
 class VirtualMachine:
-    def run(self, code_obj: types.CodeType)  -> tp.Any:
+    def run(self, code_obj: types.CodeType) -> tp.Any:
         """
         :param code_obj: code for interpreting
         """
