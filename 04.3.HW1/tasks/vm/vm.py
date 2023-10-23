@@ -442,8 +442,8 @@ class Frame:
     def build_set_op(self, arg: tp.Any) -> tp.Any:
         ll = []
         for a in range(arg):
-            tmp = self.pop()
-            ll.append(tmp)
+            a = self.pop()
+            ll.append(a)
 
         self.push(set(ll))
 
