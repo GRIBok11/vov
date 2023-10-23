@@ -550,7 +550,7 @@ class Frame:
         except Exception:
             raise ImportError()
 
-    def import_from_op(self, arg) -> tp.Any:
+    def import_from_op(self, arg: tp.Any) -> tp.Any:
         module = self.top()
 
         try:
