@@ -2,7 +2,7 @@ import typing as tp
 
 
 class LifeGame(object):
-    def __init__(self, initial_board: tp.Any) -> tp.Any:
+    def __init__(self, initial_board: tp.Any) -> None:
         self.board = initial_board
         self.rows = len(initial_board)
         self.cols = len(initial_board[0])
