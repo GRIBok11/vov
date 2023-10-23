@@ -29,7 +29,7 @@ class ListTwist(UserList[tp.Any]):
             self.data[0] = value
         elif name == 'last' or name == 'L':
             if not self.data:
-                raise AttributeError("empty")
+                raise AttributeError("mpty")
             self.data[-1] = value
         elif name == 'size' or name == 'S':
             if value < 0:
