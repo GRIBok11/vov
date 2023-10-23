@@ -1,4 +1,4 @@
-import tp
+import typing as tp
 
 
 class LifeGame(object):
