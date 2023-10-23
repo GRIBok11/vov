@@ -1,10 +1,13 @@
+import tp
+
+
 class LifeGame(object):
-    def __init__(self, initial_board):
+    def __init__(self, initial_board: tp.Any) -> tp.Any:
         self.board = initial_board
         self.rows = len(initial_board)
         self.cols = len(initial_board[0])
 
-    def get_next_generation(self):
+    def get_next_generation(self) -> tp.Any:
         new_board = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
 
         for i in range(self.rows):
@@ -38,7 +41,7 @@ class LifeGame(object):
         self.board = new_board
         return new_board
 
-    def _get_neighbors(self, i, j):
+    def _get_neighbors(self, i: tp.Any, j: tp.Any) -> tp.Any:
         neighbors = []
         neighbor_indices = [(i - 1, j - 1), (i - 1, j), (i - 1, j + 1),
                             (i, j - 1), (i, j + 1),
