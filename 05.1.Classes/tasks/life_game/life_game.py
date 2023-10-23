@@ -20,14 +20,14 @@ class LifeGame(object):
                     elif shrimp_neighbors == 3:
                         new_board[i][j] = 3
 
-                if self.board[i][j] == 2:
+                elif self.board[i][j] == 2:
 
                     if fish_neighbors < 2 or fish_neighbors > 3:
                         new_board[i][j] = 0
                     else:
                         new_board[i][j] = 2
 
-                if self.board[i][j] == 3:
+                elif self.board[i][j] == 3:
                     if shrimp_neighbors < 2 or shrimp_neighbors > 3:
                         new_board[i][j] = 0
                     else:
