@@ -3,10 +3,10 @@ import typing as tp
 
 
 class ListTwist(UserList[tp.Any]):
-    def __init__(self, data: list[tp.Any]) -> None:
+    def __init__(self, data=None) -> None:
         super().__init__(data if data is not None else [])
 
-    def __getattr__(self, name: tp.Any) -> tp.Any:
+    def __getattr__(self, name) -> None:
         if name == 'reversed' or name == 'R':
             return self.data[::-1]
         elif name == 'first' or name == 'F':
@@ -22,7 +22,7 @@ class ListTwist(UserList[tp.Any]):
         else:
             raise AttributeError(f"no '{name}'")
 
-    def __setattr__(self, name: tp.Any, value: tp.Any) -> None:
+    def __setattr__(self, name, value) -> None:
         if name == 'first' or name == 'F':
             if not self.data:
                 raise AttributeError("empty")
