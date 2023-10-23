@@ -120,41 +120,41 @@ class Frame:
         self.globals[arg] = value
         self.locals[arg] = value
 
-    def binary_op_op(self, opcode):
+    def binary_op_op(self, arg: tp.Any):
         if len(self.data_stack) < 2:
             raise ValueError
         op2 = self.pop()
         op1 = self.pop()
         result = None
 
-        if opcode == 13 or opcode == 0:
+        if arg == 13 or arg == 0:
             result = op1 + op2
-        elif opcode == 24 or opcode == 11:
+        elif arg == 24 or arg == 11:
             result = op1 / op2
-        elif opcode == 1 or opcode == 14:
+        elif arg == 1 or arg == 14:
             result = op1 & op2
-        elif opcode == 7 or opcode == 20:
+        elif arg == 7 or arg == 20:
             result = op1 | op2
-        elif opcode == 10 or opcode == 23:
+        elif arg == 10 or arg == 23:
             result = op1 - op2
-        elif opcode == 5 or opcode == 18:
+        elif arg == 5 or arg == 18:
             result = op1 * op2
-        elif opcode == 8 or opcode == 21:
+        elif arg == 8 or arg == 21:
             result = op1 ** op2
-        elif opcode == 12 or opcode == 25:
+        elif arg == 12 or arg == 25:
             result = op1 ^ op2
-        elif opcode == 6 or opcode == 19:
+        elif arg == 6 or arg == 19:
             result = op1 % op2
-        elif opcode == 3 or opcode == 16:
+        elif arg == 3 or arg == 16:
             result = op1 << op2
-        elif opcode == 22 or opcode == 9:
+        elif arg == 22 or arg == 9:
             result = op1 >> op2
-        elif opcode == 2 or opcode == 15:
+        elif arg == 2 or arg == 15:
             result = op1 // op2
         if result is not None:
             self.push(result)
 
-    def unpack_sequence_op(self, count):
+    def unpack_sequence_op(self, arg: tp.Any):
         sequence = self.pop()
         if not isinstance(sequence, (list, tuple)):
             raise TypeError("Argument must be a list or tuple")
@@ -187,76 +187,76 @@ class Frame:
 
         self.push(result)
 
-    def pop_jump_forward_if_false_op(self, offset):
+    def pop_jump_forward_if_false_op(self, offset: tp.Any):
         value = self.pop()
 
         if not value:
             self.i = self.find_wanted_ind_by_offset(offset)
 
-    def find_wanted_ind_by_offset(self, offset):
+    def find_wanted_ind_by_offset(self, offset: tp.Any):
         for i, instr in enumerate(dis.get_instructions(self.code)):
             if instr.offset == offset:
                 return i - 1
 
-    def pop_jump_forward_if_true_op(self, offset):
+    def pop_jump_forward_if_true_op(self, offset: tp.Any):
         value = self.pop()
         if value:
             self.i = self.find_wanted_ind_by_offset(offset)
 
-    def pop_jump_back_if_false_op(self, offset):
+    def pop_jump_back_if_false_op(self, offset: tp.Any):
         value = self.pop()
         if not value:
             self.i = self.find_wanted_ind_by_offset(offset)
 
-    def jump_backward_op(self, offset):
+    def jump_backward_op(self, offset: tp.Any):
         self.i = self.find_wanted_ind_by_offset(offset)
 
-    def nop_op(self, arg):
+    def nop_op(self, arg: tp.Any):
         pass
 
-    def jump_forward_op(self, offset):
+    def jump_forward_op(self, offset: tp.Any):
         self.i = self.find_wanted_ind_by_offset(offset)
 
-    def pop_jump_backward_if_true_op(self, offset):
+    def pop_jump_backward_if_true_op(self, offset: tp.Any):
         value = self.pop()
         if value:
             self.i = self.find_wanted_ind_by_offset(offset)
 
-    def binary_subscr_op(self, arg):
+    def binary_subscr_op(self, arg: tp.Any):
         op2 = self.pop()
         op1 = self.pop()
         self.push(op1[op2])
 
-    def unary_positive_op(self, arg):
+    def unary_positive_op(self, arg: tp.Any):
         a = self.pop()
         self.push(+a)
 
-    def unary_negative_op(self, arg):
+    def unary_negative_op(self, arg: tp.Any):
         a = self.pop()
         self.push(-a)
 
-    def unary_not_op(self, arg):
+    def unary_not_op(self, arg: tp.Any):
         a = self.pop()
         self.push(not a)
 
-    def unary_invert_op(self, arg):
+    def unary_invert_op(self, arg: tp.Any):
         a = self.pop()
         self.push(~a)
 
-    def jump_if_true_or_pop_op(self, offset):
+    def jump_if_true_or_pop_op(self, offset: tp.Any):
         a = self.pop()
         if a:
             self.i = self.find_wanted_ind_by_offset(offset)
             self.push(a)
 
-    def get_iter_op(self, arg) -> None:
+    def get_iter_op(self, arg: tp.Any):
         iterable = self.pop()
         if iterable is not None:
             self.push(iter(iterable))
         else:
             self.push(None)
 
-    def for_iter_op(self, offset: int) -> None:
+    def for_iter_op(self, arg: tp.Any):
         iterator = self.top()
 
         if iterator is not None:
@@ -265,59 +265,59 @@ class Frame:
                 self.push(item)
             except StopIteration:
                 self.pop()
-                self.i = self.find_wanted_ind_by_offset(offset)
+                self.i = self.find_wanted_ind_by_offset(arg)
         else:
             self.pop()
-            self.i = self.find_wanted_ind_by_offset(offset)
+            self.i = self.find_wanted_ind_by_offset(arg)
 
-    def build_slice_op(self, n):
-        if n == 2:
+    def build_slice_op(self, arg: tp.Any):
+        if arg == 2:
             end = self.pop()
             start = self.pop()
             self.push(slice(start, end))
 
-        if n == 3:
+        if arg == 3:
             step = self.pop()
             end = self.pop()
             start = self.pop()
             self.push(slice(start, end, step))
 
-    def build_list_op(self, size):
-        items = [self.pop() for _ in range(size)]
+    def build_list_op(self, arg: tp.Any):
+        items = [self.pop() for _ in range(arg)]
         items.reverse()
         self.push(list(items))
 
-    def build_tuple_op(self, size):
-        items = [self.pop() for _ in range(size)]
+    def build_tuple_op(self, arg: tp.Any):
+        items = [self.pop() for _ in range(arg)]
         items.reverse()
         self.push(tuple(items))
 
-    def list_extend_op(self, arg):
+    def list_extend_op(self, arg: tp.Any):
         tmp = list(self.pop())
         ll = self.pop()
         ll.extend(tmp)
         self.push(ll)
 
-    def build_map_op(self, size: int):
+    def build_map_op(self, arg: tp.Any):
         key_value_pairs = []
-        for _ in range(size):
+        for _ in range(arg):
             val = self.pop()
             key = self.pop()
             key_value_pairs.append((key, val))
         result_dict = dict(key_value_pairs)
         self.push(result_dict)
 
-    def build_const_key_map_op(self, count):
+    def build_const_key_map_op(self, arg: tp.Any):
         keys = self.pop()
-        values = [self.pop() for _ in range(count)]
+        values = [self.pop() for _ in range(arg)]
         values.reverse()
         result_dict = dict(zip(keys, values))
         self.push(result_dict)
 
-    def load_assertion_error_op(self, arg):
+    def load_assertion_error_op(self, arg: tp.Any):
         self.push(AssertionError)
 
-    def raise_varargs_op(self, argc):
+    def raise_varargs_op(self, argc: tp.Any):
         if argc == 0:
             raise
         elif argc == 1:
@@ -325,30 +325,30 @@ class Frame:
         elif argc == 2:
             raise self.data_stack[-2] from self.data_stack[-1]
 
-    def load_method_op(self, method_name):
+    def load_method_op(self, arg: tp.Any):
 
         obj = self.pop()
 
-        if not hasattr(obj, method_name):
-            raise AttributeError(f"{type(obj).__name}  has no '{method_name}'")
+        if not hasattr(obj, arg):
+            raise AttributeError(f"{type(obj).__name}  has no '{arg}'")
 
-        method = getattr(obj, method_name)
+        method = getattr(obj, arg)
 
         self.push(method)
 
-    def swap_op(self, arg: int) -> None:
+    def swap_op(self, arg: tp.Any):
         v1 = self.pop()
         v2 = self.pop()
         self.push(v1)
         self.push(v2)
 
-    def jump_if_false_or_pop_op(self, offset: int):
+    def jump_if_false_or_pop_op(self, offset: tp.Any):
         op = self.pop()
         if not op:
             self.i = self.find_wanted_ind_by_offset(offset)
             self.push(op)
 
-    def contains_op_op(self, arg):
+    def contains_op_op(self, arg: tp.Any):
         op2 = self.pop()
         op1 = self.pop()
 
@@ -357,7 +357,7 @@ class Frame:
         else:
             self.push(op1 in op2)
 
-    def is_op_op(self, arg):
+    def is_op_op(self, arg: tp.Any):
         op2 = self.pop()
         op1 = self.pop()
 
@@ -366,27 +366,27 @@ class Frame:
         else:
             self.push(op1 is op2)
 
-    def store_fast_op(self, arg):
+    def store_fast_op(self, arg: tp.Any):
         op = self.pop()
         self.locals[arg] = op
 
-    def load_fast_op(self, arg):
+    def load_fast_op(self, arg: tp.Any):
         try:
             op = self.locals[arg]
         except KeyError:
             UnboundLocalError
         self.push(op)
 
-    def pop_jump_forward_if_none_op(self, offset):
+    def pop_jump_forward_if_none_op(self, offset: tp.Any):
         value = self.pop()
 
         if value is None:
             self.i = self.find_wanted_ind_by_offset(offset)
 
-    def build_string_op(self, count):
+    def build_string_op(self, arg: tp.Any):
         s = ""
         ll = []
-        for i in range(count):
+        for i in range(arg):
             ll.append(self.pop())
 
         for elem in reversed(ll):
@@ -394,7 +394,7 @@ class Frame:
 
         self.push(s)
 
-    def format_value_op(self, flags):
+    def format_value_op(self, arg: tp.Any):
 
         # value = self.pop()
         # if (flags & 0x03) == 0x00:
@@ -413,7 +413,7 @@ class Frame:
         value = self.pop()
         self.push(str(value))
 
-    def make_function_op(self, arg: int) -> None:
+    def make_function_op(self, arg: tp.Any):
         code = self.pop()
 
         kw_defaults = self.pop() if arg & 0x08 else {}
@@ -439,34 +439,34 @@ class Frame:
 
         self.push(f)
 
-    def build_set_op(self, n):
+    def build_set_op(self, arg: tp.Any):
         ll = []
-        for a in range(n):
+        for a in range(arg):
             tmp = self.pop()
             ll.append(tmp)
 
         self.push(set(ll))
 
-    def set_update_op(self, i):
+    def set_update_op(self, arg: tp.Any):
         seq = self.pop()
-        set.update(self.data_stack[-i], seq)
+        set.update(self.data_stack[-arg], seq)
 
-    def copy_op(self, i):
-        assert i > 0
-        self.data_stack.append(self.data_stack[-i])
+    def copy_op(self, arg: tp.Any):
+        assert arg > 0
+        self.data_stack.append(self.data_stack[-arg])
 
-    def store_subscr_op(self, arg):
+    def store_subscr_op(self, arg: tp.Any):
         key = self.pop()
         container = self.pop()
         value = self.pop()
         container[key] = value
 
-    def delete_subscr_op(self, arg):
+    def delete_subscr_op(self, arg: tp.Any):
         key = self.pop()
         container = self.pop()
         del container[key]
 
-    def delete_name_op(self, arg):
+    def delete_name_op(self, arg: tp.Any):
         if arg in self.locals:
             del (self.locals[arg])
         elif arg in self.globals:
@@ -476,23 +476,23 @@ class Frame:
         else:
             raise NameError
 
-    def delete_global_op(self, arg):
+    def delete_global_op(self, arg: tp.Any):
         if arg in self.globals:
             del (self.globals[arg])
         else:
             raise NameError
 
-    def delete_fast_op(self, arg):
+    def delete_fast_op(self, arg: tp.Any):
         if arg in self.locals:
             del (self.locals[arg])
         else:
             raise NameError
 
-    def list_to_tuple_op(self, arg):
+    def list_to_tuple_op(self, arg: tp.Any):
         ll = self.pop()
         self.push(tuple(ll))
 
-    def store_attr_op(self, arg):
+    def store_attr_op(self, arg: tp.Any):
         try:
             name_index = self.code.co_names.index(arg)
         except ValueError:
@@ -503,8 +503,8 @@ class Frame:
         op1 = self.pop()
         setattr(op2, name, op1)
 
-    def load_attr_op(self, namei):
-        attr_name = namei
+    def load_attr_op(self, arg: tp.Any):
+        attr_name = arg
 
         obj = self.pop()
 
@@ -514,24 +514,24 @@ class Frame:
         else:
             raise AttributeError
 
-    def delete_attr_op(self, namei):
+    def delete_attr_op(self, arg: tp.Any):
         obj = self.pop()
-        delattr(obj, namei)
+        delattr(obj, arg)
 
-    def load_build_class_op(self, classs):
+    def load_build_class_op(self, arg: tp.Any):
         self.push(self.builtins['__build_class__'])
 
-    def setup_annotations_op(self, arg):
+    def setup_annotations_op(self, arg: tp.Any):
         if '__annotations__' not in self.locals:
             self.locals['__annotations__'] = {}
 
-    def dict_update_op(self, i):
+    def dict_update_op(self, arg: tp.Any):
         map = self.pop()
-        dict.update(self.data_stack[-i], map)
+        dict.update(self.data_stack[-arg], map)
 
-    def import_name_op(self, namei):
+    def import_name_op(self, arg: tp.Any):
 
-        module_name = namei
+        module_name = arg
         fromlist = self.pop()
         level = self.pop()
 
@@ -540,7 +540,7 @@ class Frame:
 
         self.push(imported_module)
 
-    def import_star_op(self, arg):
+    def import_star_op(self, arg: tp.Any):
         module = self.pop()
         try:
             imported_items = vars(module)
@@ -550,17 +550,16 @@ class Frame:
         except Exception:
             raise ImportError()
 
-    def import_from_op(self, namei):
-        attr_name = namei
+    def import_from_op(self, arg):
         module = self.top()
 
         try:
-            attr = getattr(module, attr_name)
+            attr = getattr(module, arg)
             self.push(attr)
         except AttributeError:
             raise AttributeError()
 
-    def load_name_op(self, arg: str) -> None:
+    def load_name_op(self, arg: tp.Any):
 
         if arg in self.locals:
             self.push(self.locals[arg])
@@ -575,7 +574,7 @@ class Frame:
             self.last_exception = NameError(arg)
             self.exception_handling()
 
-    def load_global_op(self, arg: str) -> None:
+    def load_global_op(self, arg: tp.Any):
         if arg in self.locals:
             self.push(self.locals[arg])
 
@@ -602,28 +601,28 @@ class Frame:
         else:
             raise ValueError("Unexpected handler type")
 
-    def setup_except_op(self, delta: int):
+    def setup_except_op(self, arg: tp.Any):
         block_type = "EXCEPT"
 
-        handler = delta
+        handler = arg
         level = len(self.data_stack)
         self.block_holder.append((block_type, handler, level))
 
-    def pop_except_op(self, arg):
+    def pop_except_op(self, arg: tp.Any):
         self.check_block_can_be_finished("EXCEPT")
         self.block_holder.pop()
 
-    def end_finally_op(self, arg):
+    def end_finally_op(self, arg: tp.Any):
         if self.last_exception:
             self.data_stack.pop()
 
         self.data_stack.pop()
         self.data_stack.pop()
 
-    def check_block_can_be_finished(self, block_type):
+    def check_block_can_be_finished(self, arg: tp.Any):
         top = self.block_holder[-1]
 
-        assert top[0] == block_type, f"Expected {block_type} block on stack!"
+        assert top[0] == arg, f"Expected {arg} block on stack!"
 
 
 class VirtualMachine:
