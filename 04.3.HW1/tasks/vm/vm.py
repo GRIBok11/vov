@@ -9,7 +9,6 @@ import types
 import typing as tp
 
 
-
 class Frame:
     """
     Frame header in cpython with description
@@ -18,6 +17,7 @@ class Frame:
     Text description of frame parameters
         https://docs.python.org/3/library/inspect.html?highlight=frame#types-and-members
     """
+
     def __init__(self,
                  frame_code: types.CodeType,
                  frame_builtins: dict[str, tp.Any],
@@ -25,8 +25,8 @@ class Frame:
                  frame_locals: dict[str, tp.Any]) -> None:
         self.code = frame_code
         self.i = 0
-        self.last_exception = None
-        self.block_holder = []
+        self.last_exception: tp.Any = None
+        self.block_holder: tp.Any = []
         self.builtins = frame_builtins
         self.globals = frame_globals
         self.locals = frame_locals
@@ -56,17 +56,18 @@ class Frame:
 
     def run(self) -> tp.Any:
 
-        l = []
+        ll = []
 
         for instruction in dis.get_instructions(self.code):
-            l.append(instruction)
+            ll.append(instruction)
 
         while True:
-            if self.i >= len(l):
+            if self.i >= len(ll):
                 break
-            getattr(self, l[self.i].opname.lower() + "_op")(l[self.i].argval)
+            getattr(self, ll[self.i].opname.lower() + "_op")(ll[self.i].argval)
             self.i += 1
         return self.return_value
+
     def resume_op(self, arg: int) -> tp.Any:
         pass
 
@@ -84,7 +85,6 @@ class Frame:
         arguments = self.popn(arg)
         f = self.pop()
         self.push(f(*arguments))
-
 
     def load_const_op(self, arg: tp.Any) -> None:
         """
@@ -106,27 +106,6 @@ class Frame:
             https://docs.python.org/release/3.11.5/library/dis.html#opcode-POP_TOP
         """
         self.pop()
-
-    def make_function_op(self, arg: int) -> None:
-        """
-        Operation description:
-            https://docs.python.org/release/3.11.5/library/dis.html#opcode-MAKE_FUNCTION
-        """
-        code = self.pop()  # the code associated with the function (at TOS1)
-
-        # TODO: use arg to parse function defaults
-
-        def f(*args: tp.Any, **kwargs: tp.Any) -> tp.Any:
-            # TODO: parse input arguments using code attributes such as co_argcount
-
-            parsed_args: dict[str, tp.Any] = {}
-            f_locals = dict(self.locals)
-            f_locals.update(parsed_args)
-
-            frame = Frame(code, self.builtins, self.globals, f_locals)  # Run code in prepared environment
-            return frame.run()
-
-        self.push(f)
 
     def store_name_op(self, arg: str) -> None:
         """
@@ -185,7 +164,7 @@ class Frame:
 
     def compare_op_op(self, op):
         if len(self.data_stack) < 2:
-            raise ValueError("Not enough values on the data stack for comparison operation")
+            raise ValueError("Not enough values")
 
         operand2 = self.pop()
         operand1 = self.pop()
@@ -218,6 +197,7 @@ class Frame:
         for i, instr in enumerate(dis.get_instructions(self.code)):
             if instr.offset == offset:
                 return i - 1
+
     def pop_jump_forward_if_true_op(self, offset):
         value = self.pop()
         if value:
@@ -233,6 +213,7 @@ class Frame:
 
     def nop_op(self, arg):
         pass
+
     def jump_forward_op(self, offset):
         self.i = self.find_wanted_ind_by_offset(offset)
 
@@ -313,10 +294,9 @@ class Frame:
 
     def list_extend_op(self, arg):
         tmp = list(self.pop())
-        l = self.pop()
-        l.extend(tmp)
-        self.push(l)
-
+        ll = self.pop()
+        ll.extend(tmp)
+        self.push(ll)
 
     def build_map_op(self, size: int):
         key_value_pairs = []
@@ -345,14 +325,12 @@ class Frame:
         elif argc == 2:
             raise self.data_stack[-2] from self.data_stack[-1]
 
-
-
     def load_method_op(self, method_name):
 
         obj = self.pop()
 
         if not hasattr(obj, method_name):
-            raise AttributeError(f"{type(obj).__name} object has no attribute '{method_name}'")
+            raise AttributeError(f"{type(obj).__name}  has no '{method_name}'")
 
         method = getattr(obj, method_name)
 
@@ -404,13 +382,14 @@ class Frame:
 
         if value is None:
             self.i = self.find_wanted_ind_by_offset(offset)
+
     def build_string_op(self, count):
         s = ""
-        l = []
+        ll = []
         for i in range(count):
-            l.append(self.pop())
+            ll.append(self.pop())
 
-        for elem in reversed(l):
+        for elem in reversed(ll):
             s += elem
 
         self.push(s)
@@ -439,12 +418,10 @@ class Frame:
 
         kw_defaults = self.pop() if arg & 0x08 else {}
         defaults = self.pop() if arg & 0x04 else ()
-        closure = self.pop() if arg & 0x10 else None
-        annotations = self.pop() if arg & 0x20 else None
-        num_pos_defaults = len(defaults)
 
         def f(*args: tp.Any, **kwargs: tp.Any) -> tp.Any:
-            f_locals = {name: value for name, value in zip(code.co_varnames, defaults)}
+            f_locals = {name: value for name, value in
+                        zip(code.co_varnames, defaults)}
             num_args = min(code.co_argcount, len(args))
             f_locals.update(zip(code.co_varnames[:num_args], args[:num_args]))
 
@@ -463,12 +440,12 @@ class Frame:
         self.push(f)
 
     def build_set_op(self, n):
-        l = []
+        ll = []
         for a in range(n):
             tmp = self.pop()
-            l.append(tmp)
+            ll.append(tmp)
 
-        self.push(set(l))
+        self.push(set(ll))
 
     def set_update_op(self, i):
         seq = self.pop()
@@ -512,8 +489,8 @@ class Frame:
             raise NameError
 
     def list_to_tuple_op(self, arg):
-        l = self.pop()
-        self.push(tuple(l))
+        ll = self.pop()
+        self.push(tuple(ll))
 
     def store_attr_op(self, arg):
         try:
@@ -558,7 +535,8 @@ class Frame:
         fromlist = self.pop()
         level = self.pop()
 
-        imported_module = __import__(module_name, globals(), locals(), fromlist, level)
+        imported_module = __import__(module_name, globals(),
+                                     locals(), fromlist, level)
 
         self.push(imported_module)
 
@@ -569,7 +547,7 @@ class Frame:
             for name, value in imported_items.items():
                 self.locals[name] = value
             self.push(imported_items)
-        except Exception as e:
+        except Exception:
             raise ImportError()
 
     def import_from_op(self, namei):
@@ -581,8 +559,6 @@ class Frame:
             self.push(attr)
         except AttributeError:
             raise AttributeError()
-
-
 
     def load_name_op(self, arg: str) -> None:
 
@@ -599,7 +575,6 @@ class Frame:
             self.last_exception = NameError(arg)
             self.exception_handling()
 
-
     def load_global_op(self, arg: str) -> None:
         if arg in self.locals:
             self.push(self.locals[arg])
@@ -614,7 +589,6 @@ class Frame:
             self.last_exception = NameError(arg)
             self.exception_handling()
 
-
     def exception_handling(self):
         if len(self.block_holder) == 0:
             raise self.last_exception
@@ -628,14 +602,12 @@ class Frame:
         else:
             raise ValueError("Unexpected handler type")
 
-
     def setup_except_op(self, delta: int):
         block_type = "EXCEPT"
 
         handler = delta
         level = len(self.data_stack)
         self.block_holder.append((block_type, handler, level))
-
 
     def pop_except_op(self, arg):
         self.check_block_can_be_finished("EXCEPT")
@@ -648,11 +620,11 @@ class Frame:
         self.data_stack.pop()
         self.data_stack.pop()
 
-
     def check_block_can_be_finished(self, block_type):
         top = self.block_holder[-1]
 
         assert top[0] == block_type, f"Expected {block_type} block on stack!"
+
 
 class VirtualMachine:
     def run(self, code_obj: types.CodeType) -> None:
@@ -660,5 +632,6 @@ class VirtualMachine:
         :param code_obj: code for interpreting
         """
         globals_context: dict[str, tp.Any] = {}
-        frame = Frame(code_obj, builtins.globals()['__builtins__'], globals_context, globals_context)
+        frame = Frame(code_obj, builtins.globals()['__builtins__'],
+                      globals_context, globals_context)
         return frame.run()
