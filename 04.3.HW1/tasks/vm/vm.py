@@ -588,7 +588,7 @@ class Frame:
             self.last_exception = NameError(arg)
             self.exception_handling()
 
-    def exception_handling(self) -> tp.Any:
+    def exception_handling(self) -> None:
         if len(self.block_holder) == 0:
             raise self.last_exception
 
