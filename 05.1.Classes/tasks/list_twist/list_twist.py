@@ -11,11 +11,11 @@ class ListTwist(UserList[tp.Any]):
             return self.data[::-1]
         elif name == 'first' or name == 'F':
             if not self.data:
-                raise AttributeError("mpty")
+                raise AttributeError("empty")
             return self.data[0]
         elif name == 'last' or name == 'L':
             if not self.data:
-                raise AttributeError("mpty")
+                raise AttributeError("empty")
             return self.data[-1]
         elif name == 'size' or name == 'S':
             return len(self.data)
