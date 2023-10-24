@@ -3,7 +3,7 @@ import typing as tp
 
 
 class ListTwist(UserList[tp.Any]):
-    def __init__(self, data:tp.Any =None) -> None:
+    def __init__(self, data: tp.Any = None) -> None:
         super().__init__(data if data is not None else [])
 
     def __getattr__(self, name: tp.Any) -> tp.Any:
