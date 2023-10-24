@@ -1,6 +1,6 @@
 import typing as tp
 
-from abc import ABC, abstractmethod, abstractclassmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, InitVar
 
 a = 15
@@ -8,21 +8,25 @@ a = 15
 
 @dataclass(frozen=True, order=True)
 class Item(object):
-    title: str = field(compare=True)
     item_id: int = field(compare=False)
+    title: str = field(compare=True)
     cost: int = field(compare=True)
 
     def __post_init__(self) -> None:
         if self.cost <= 0 or not len(str(self.title)):
             raise AssertionError()
 
+
 @dataclass
 class Position(ABC):
     item: Item
 
-    @abstractclassmethod
+
+    @property
+    @abstractmethod
     def cost(self) -> tp.Any:
         return self.item.cost
+
 
 @dataclass
 class CountedPosition(Position):
@@ -61,4 +65,3 @@ class Order:
             dis = 1
 
         self.cost = int(op * dis)
-
