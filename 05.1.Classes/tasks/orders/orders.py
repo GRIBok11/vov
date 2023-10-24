@@ -21,7 +21,6 @@ class Item(object):
 class Position(ABC):
     item: Item
 
-
     @property
     @abstractmethod
     def cost(self) -> tp.Any:
