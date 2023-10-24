@@ -39,4 +39,4 @@ class ListTwist(UserList[tp.Any]):
             elif value > len(self.data):
                 self.data.extend([None] * (value - len(self.data)))
         else:
-                super().__setattr__(name, value)
+            super().__setattr__(name, value)
