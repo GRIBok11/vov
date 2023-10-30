@@ -26,8 +26,8 @@ def dumper(stream: tp.TextIO | None = None) -> tp.Iterator[None]:
         stream = sys.stderr
     try:
         yield
-    except Exception as exception:
-        i = traceback.format_exception_only(type(exception), exception)
+    except Exception as excepion:
+        i = traceback.format_exception_only(type(excepion), excepion)
         res = ""
         for elem in i:
             res += elem
