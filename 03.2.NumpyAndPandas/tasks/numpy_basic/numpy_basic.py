@@ -27,8 +27,6 @@ def construct_array(
     selected_elements = matrix[row_indices, col_indices]
     return selected_elements
 
-    return selected_elements
-
 
 def detect_identic(
         lhs_array: npt.ArrayLike,
