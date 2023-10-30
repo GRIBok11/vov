@@ -9,3 +9,13 @@ def max_element(array: npt.NDArray[np.int_]) -> int | None:
     :param array: array,
     :return: max element value or None
     """
+    mask = np.roll(array == 0, 1)
+    mask[0] = False
+
+    filtered_array = array[mask]
+
+    if len(filtered_array) == 0:
+        return None
+    else:
+        return np.max(filtered_array)
+
