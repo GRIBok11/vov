@@ -12,10 +12,10 @@ def max_element(array: npt.NDArray[np.int_]) -> int | None:
     mask = np.roll(array == 0, 1)
     mask[0] = False
 
-    filtered = array[mask]
+    filterd = array[mask]
 
-    if len(filtered) == 0:
+    if len(filterd) == 0:
         return None
     else:
-        return np.max(filtered)
+        return np.max(filterd)
 
