@@ -3,6 +3,8 @@ import contextlib
 
 import time
 
+import typing as tp
+
 
 class TimeoutException(BaseException):
     pass
@@ -17,7 +19,7 @@ class HardTimeoutException(TimeoutException):
 
 
 class TimeCatcher:
-    def __init__(self, soft_timeout=None, hard_timeout=None):
+    def __init__(self, soft_timeout=None, hard_timeout=None) -> None:
 
         assert (soft_timeout is None or
                 hard_timeout is None or
@@ -30,19 +32,19 @@ class TimeCatcher:
         self.tt = soft_timeout
         self.td = hard_timeout
 
-    def __enter__(self):
+    def __enter__(self) -> tp.Any:
         self.start = time.time()
         return self
 
-    def __float__(self):
+    def __float__(self) -> tp.Any:
         self.__exit__(None, None, None)
         return self.rt
 
-    def __str__(self):
+    def __str__(self) -> str:
         self.__exit__(None, None, None)
         return f"Time consumed: {self.__float__():.4f}"
 
-    def __exit__(self, ar1, ar2, ar3):
+    def __exit__(self, ar1, ar2, ar3) -> None:
         self.rt = time.time() - self.start
         if self.tt is not None and self.rt > self.tt:
             raise SoftTimeoutException
