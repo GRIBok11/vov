@@ -1,8 +1,4 @@
 import time
-import contextlib
-
-import time
-
 import typing as tp
 
 
@@ -19,7 +15,7 @@ class HardTimeoutException(TimeoutException):
 
 
 class TimeCatcher:
-    def __init__(self, soft_timeout=None, hard_timeout=None) -> None:
+    def __init__(self, soft_timeout: float = None, hard_timeout: float = None) -> None:
 
         assert (soft_timeout is None or
                 hard_timeout is None or
