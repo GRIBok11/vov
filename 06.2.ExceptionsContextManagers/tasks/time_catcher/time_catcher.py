@@ -29,7 +29,7 @@ class TimeCatcher:
         self.td = hard_timeout
 
     def __enter__(self) -> tp.Any:
-        self.start = time.time()
+        self.st = time.time()
         return self
 
     def __float__(self) -> tp.Any:
@@ -41,7 +41,7 @@ class TimeCatcher:
         return f"Time consumed: {self.__float__():.4f}"
 
     def __exit__(self, ar1: tp.Any, ar2: tp.Any, ar3: tp.Any) -> None:
-        self.rt = time.time() - self.start
+        self.rt = time.time() - self.st
         if self.tt is not None and self.rt > self.tt:
             raise SoftTimeoutException
         if self.td is not None and self.rt > self.td:
