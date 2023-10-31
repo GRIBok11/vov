@@ -15,7 +15,7 @@ class HardTimeoutException(TimeoutException):
 
 
 class TimeCatcher:
-    def __init__(self, soft_timeout = None, hard_timeout = None) -> None:  # type: ignore
+    def __init__(self, soft_timeout=None, hard_timeout=None) -> None:  # type: ignore
 
         assert (soft_timeout is None or
                 hard_timeout is None or
