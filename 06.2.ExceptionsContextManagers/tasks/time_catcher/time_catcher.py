@@ -15,7 +15,7 @@ class HardTimeoutException(TimeoutException):
 
 
 class TimeCatcher:
-    def __init__(self, soft_timeout: float = None, hard_timeout: float = None) -> None:
+    def __init__(self, soft_timeout = None, hard_timeout = None) -> None:  # type: ignore
 
         assert (soft_timeout is None or
                 hard_timeout is None or
@@ -40,7 +40,7 @@ class TimeCatcher:
         self.__exit__(None, None, None)
         return f"Time consumed: {self.__float__():.4f}"
 
-    def __exit__(self, ar1, ar2, ar3) -> None:
+    def __exit__(self, ar1: tp.Any, ar2: tp.Any, ar3: tp.Any) -> None:
         self.rt = time.time() - self.start
         if self.tt is not None and self.rt > self.tt:
             raise SoftTimeoutException
