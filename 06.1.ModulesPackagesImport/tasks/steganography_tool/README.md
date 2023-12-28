@@ -41,8 +41,11 @@
 # Собрать wheel для библиотеки steganography_tool
 (shad_env)$ pip wheel --wheel-dir 06.1.ModulesPackagesImport/tasks/steganography_tool/dist 06.1.ModulesPackagesImport/tasks/steganography_tool/
 
+# Поставить в виртуальное окружение unzip
+(shad_env)$ sudo apt install unzip
+
 # Посмотреть какие файлы упаковались в wheel
-(shad_env)$ tar --list -f 06.1.ModulesPackagesImport/tasks/steganography_tool/dist/steganography_tool-0.0.1-py3-none-any.whl  
+(shad_env)$ unzip -l 06.1.ModulesPackagesImport/tasks/steganography_tool/dist/steganography_tool-0.0.1-py3-none-any.whl  
 
 # Устанавливаем собранный wheel для steganography_tool
 (shad_env)$ pip install 06.1.ModulesPackagesImport/tasks/steganography_tool/ --prefer-binary --force-reinstall --find-links 06.1.ModulesPackagesImport/tasks/steganography_tool/dist/
