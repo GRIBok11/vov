@@ -4,8 +4,8 @@ import numpy.typing as npt
 
 def max_element(array: npt.NDArray[np.int_]) -> int | None:
     """
-    Return max element before zero for input array.
-    If appropriate elements are absent, then return None
+    Return the maximum element in the input array preceded by a zero.
+    If no such element is found, return None.
     :param array: array,
     :return: max element value or None
     """
