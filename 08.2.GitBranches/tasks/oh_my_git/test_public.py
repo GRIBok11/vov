@@ -38,7 +38,7 @@ def repo() -> tp.Generator[git.Repo, None, None]:
     zip_path = Path(__file__).parent / 'repo_solved.zip'
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(unarchived_path)
-    repo = git.Repo(Path(unarchived_path) / 'repo')
+    repo = git.Repo(Path(unarchived_path) / 'repo_solved')
     yield repo
     shutil.rmtree(unarchived_path)
 

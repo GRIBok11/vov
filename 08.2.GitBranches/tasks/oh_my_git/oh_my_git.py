@@ -5,4 +5,4 @@ def get_secret_code() -> str:
     history of the master branch. The code should contain no oblique quotation marks, ie no `
     :return:
     """
-    pass
+    return "Haha, gotcha!"

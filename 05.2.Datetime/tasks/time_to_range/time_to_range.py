@@ -1,52 +1,64 @@
 import datetime
 import enum
-import typing as tp  # noqa
-
+import typing as tp
 
 class GranularityEnum(enum.Enum):
-    """
-    Enum for describing granularity
-    """
+    DAY = datetime.timedelta(days=1)
+    TWELVE_HOURS = datetime.timedelta(hours=12)
+    HOUR = datetime.timedelta(hours=1)
+    THIRTY_MIN = datetime.timedelta(minutes=30)
+    FIVE_MIN = datetime.timedelta(minutes=5)
 
+def truncate_to_granularity(dt: tp.Any, gtd: tp.Any) -> tp.Any:
+    dif = (dt - dt.replace(hour=0,
+                               minute=0,
+                               second=0,
+                               microsecond=0)).seconds
 
-def truncate_to_granularity(dt: datetime.datetime, gtd: GranularityEnum) -> datetime.datetime:
-    """
-    :param dt: datetime to truncate
-    :param gtd: granularity
-    :return: resulted datetime
-    """
+    s = gtd.value.total_seconds()
+
+    se = dif % s
+    insec = datetime.timedelta(seconds=se)
+    dt -= insec
+
+    return dt.replace(second=0,
+                      microsecond=0)
 
 
 class DtRange:
-    def __init__(
-            self,
-            before: int,
-            after: int,
-            shift: int,
-            gtd: GranularityEnum
-    ) -> None:
-        """
-        :param before: number of datetimes should take before `given datetime`
-        :param after: number of datetimes should take after `given datetime`
-        :param shift: shift of `given datetime`
-        :param gtd: granularity
-        """
+    def __init__(self, before: tp.Any, after: tp.Any, shift: tp.Any, gtd: tp.Any) -> None:
+        self._b = before
+        self._a = after
+        self._s = shift
+        self._g = gtd
 
-    def __call__(self, dt: datetime.datetime) -> list[datetime.datetime]:
-        """
-        :param dt: given datetime
-        :return: list of datetimes in range
-        """
+    def __call__(self, dt: tp.Any) -> tp.Any:
+        dt = truncate_to_granularity(dt, self._g)
+        return [dt + (self._s + i) * self._g.value for i in range(-self._b, self._a + 1)]
 
 
 def get_interval(
-        start_time: datetime.datetime,
-        end_time: datetime.datetime,
-        gtd: GranularityEnum
-) -> list[datetime.datetime]:
-    """
-    :param start_time: start of interval
-    :param end_time: end of interval
-    :param gtd: granularity
-    :return: list of datetimes according to granularity
-    """
+        start_time: tp.Any,
+        end_time: tp.Any,
+        gtd: tp.Any
+) -> tp.Any:
+
+    s = truncate_to_granularity(start_time, gtd)
+    f = truncate_to_granularity(end_time, gtd)
+    if s == f:
+        return []
+    res = []
+
+    if s == start_time:
+        mult = 0
+    else:
+        mult = 1
+
+    while True:
+        dt = s + mult * gtd.value
+        if dt > f:
+            break
+        res.append(dt.replace(second=0, microsecond=0))
+        mult += 1
+
+    return res

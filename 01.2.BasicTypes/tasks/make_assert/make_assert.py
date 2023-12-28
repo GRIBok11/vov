@@ -26,11 +26,14 @@ def ctr_correct_implementation(clicks: int, shows: int) -> float:
     :return: clicks-through rate.
              If there are no shows, return 0.0
     """
+    assert shows >= clicks, "Clicks greater than shows"
 
+    return clicks / shows if shows > 0 else 0.0
 
 ##############
 # Test section
 ##############
+
 
 @pytest.mark.skip
 def test_check_ctr(clicks: int, shows: int, expected_result: float) -> None:
@@ -43,3 +46,5 @@ def test_check_ctr(clicks: int, shows: int, expected_result: float) -> None:
     :param expected_result: result to compare with
     :return: None
     """
+
+    assert expected_result == ctr(clicks, shows), "Wrong ctr calculation"
